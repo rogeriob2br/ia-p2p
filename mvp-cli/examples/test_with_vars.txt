@@ -1,0 +1,25 @@
+# MVP CLI Script with Variables
+# Run with: mvp-cli script run examples/test_with_vars.txt -v NODE=localhost -v MODEL=tinyllama
+
+# Show current configuration
+config show
+
+# Submit job using variables
+job submit --node ${NODE} --model ${MODEL} "Hello from script!"
+
+# Check job status
+job list --node ${NODE}
+
+# Get node information
+node info ${NODE}
+
+
+
+
+
+
+
+
+
+
+

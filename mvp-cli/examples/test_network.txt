@@ -1,0 +1,31 @@
+# MVP CLI Network Exploration Script
+# Run with: mvp-cli script run examples/test_network.txt
+
+# List all nodes
+node list
+
+# Show network topology in ASCII
+network topology --format ascii
+
+# Show topology in JSON (for programmatic use)
+network topology --format json
+
+# List peers of a specific node
+network peers node1
+
+# Show routing path between nodes
+network routes node1 node3
+
+# Monitor network traffic (non-watch mode)
+network traffic
+
+
+
+
+
+
+
+
+
+
+

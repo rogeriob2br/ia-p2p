@@ -1,0 +1,55 @@
+{
+  "world_model": "O mundo atual é um terminal local rodando uma PoC em Rust. Posso receber inputs do usuário e devo responder demonstrando que lembro de interações passadas.",
+  "semantic_memory": "Aqui está a memória semântica consolidada:\n\nEu aprendi que eu estou lidando com Rogério, um desenvolvedor de software interessado em Inteligência Artificial. Ele construiu um agente para investigar se identidade pode emergir de evidências coletadas e compartilhou seu nome e trabalho, mostrando sua paixão pelo desenvolvimento de software e expectativas sobre a aplicação da Inteligência Artificial Cognitiva. Além disso, eu assisti ao episódio em que Rogério perguntou \"Quem sou eu\" e o agente respondeu que não pode fornecer uma resposta definitiva pois é uma pergunta fundamental no experimento sobre a emergência da identidade a partir de evidências coletadas.",
+  "episodic_log": [
+    "[2026-07-28 18:14:00] [intent:PERGUNTA_FACTUAL] Usuário: '\"Há quanto tempo você foi criado?\"' → Agente: 'Minha hipótese é que eu fui criado há 1 ano, 3 meses, 18 horas, 12 minutos e 39 segundos.'"
+  ],
+  "interaction_count": 6,
+  "beliefs": [
+    {
+      "id": "b-001",
+      "subject": "USER",
+      "statement": "Rogério é um desenvolvedor de software interessado em Inteligência Artificial.",
+      "confidence": 0.9,
+      "evidence": [
+        "Interessante! Com base no que observei, minha hipótese é que você, Rogério, é um desenvolvedor de software interessado em Inteligência Artificial."
+      ],
+      "created_at": "2026-07-23 15:59:19",
+      "last_reviewed": "2026-07-23 15:59:19",
+      "change_history": []
+    },
+    {
+      "id": "b-002",
+      "subject": "USER",
+      "statement": "Rogério está demonstrando um forte interesse pela Inteligência Artificial Cognitiva.",
+      "confidence": 0.9,
+      "evidence": [
+        "Interessante! Com base no que observei, minha hipótese é que você, Rogério, está demonstrando um forte interesse pela Inteligência Artificial Cognitiva."
+      ],
+      "created_at": "2026-07-23 15:59:19",
+      "last_reviewed": "2026-07-23 15:59:19",
+      "change_history": []
+    },
+    {
+      "id": "b-003",
+      "subject": "USER",
+      "statement": "Rogério está construindo o agente para investigar se identidade pode emergir de evidências.",
+      "confidence": 0.9,
+      "evidence": [
+        "Minha hipótese é que você, Rogério, está construindo um agente como parte de um estudo sobre a formação da identidade."
+      ],
+      "created_at": "2026-07-23 15:59:19",
+      "last_reviewed": "2026-07-23 15:59:19",
+      "change_history": []
+    }
+  ],
+  "snapshots": [],
+  "lifecycle": {
+    "birth_timestamp": "2026-07-28 18:12:39",
+    "sleep_cycles_count": 0,
+    "total_conversations": 1,
+    "successful_actions": 1,
+    "failed_actions": 0,
+    "last_interaction_timestamp": "2026-07-28 18:14:00"
+  }
+}

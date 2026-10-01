@@ -1,0 +1,44 @@
+# MVP CLI Multi-Node Test Script
+# Run with: mvp-cli script run examples/test_multinode.txt
+
+# Start 3 test nodes
+multi start 3
+
+# List running instances
+multi list
+
+# Wait for network formation (simulated)
+# wait 5
+
+# Show network topology
+network topology
+
+# Submit jobs to different nodes
+job submit --node node-1 "Test query to node 1"
+job submit --node node-2 "Test query to node 2"
+job submit --node node-3 "Test query to node 3"
+
+# List all jobs
+job list
+
+# Check node health
+node health node-1
+node health node-2
+node health node-3
+
+# View aggregated logs
+multi logs node-1
+
+# Stop all nodes
+multi stop
+
+
+
+
+
+
+
+
+
+
+

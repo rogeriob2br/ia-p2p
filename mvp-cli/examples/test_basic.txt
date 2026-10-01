@@ -1,0 +1,22 @@
+# MVP CLI Basic Test Script
+# Run with: mvp-cli script run examples/test_basic.txt
+
+# List available nodes
+node list
+
+# Submit a test job
+job submit --node localhost "What is 2 + 2?"
+
+# List all jobs
+job list
+
+
+
+
+
+
+
+
+
+
+

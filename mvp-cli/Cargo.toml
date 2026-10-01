@@ -1,0 +1,90 @@
+[package]
+name = "mvp-cli"
+version = "0.1.0"
+edition = "2021"
+description = "Command Line Interface for MVP Node - Decentralized AI Network"
+authors = ["RAIS Network"]
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+# CLI Framework
+clap = { version = "4.5", features = ["derive", "env", "color"] }
+
+# P2P Networking (reuse from mvp-node)
+libp2p = { version = "0.53", features = [
+    "gossipsub",
+    "request-response", 
+    "mdns",
+    "tcp",
+    "noise",
+    "yamux",
+    "tokio",
+    "macros",
+    "identify",
+] }
+
+# Async Runtime
+tokio = { version = "1.37", features = ["rt-multi-thread", "macros", "sync", "fs", "time", "signal", "process"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+
+# Error Handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Logging and Tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# Async utilities
+futures = "0.3"
+async-trait = "0.1"
+
+# Interactive REPL
+rustyline = { version = "14.0", features = ["derive"] }
+
+# Terminal Output
+comfy-table = "7.1"
+colored = "2.1"
+indicatif = "0.17"
+console = "0.15"
+
+# Text plots for metrics
+textplots = "0.8"
+
+# Time/Date
+chrono = { version = "0.4", features = ["serde"] }
+
+# Configuration
+config = "0.14"
+dirs = "5.0"
+
+# Path handling
+shellexpand = "3.1"
+
+# Static references
+lazy_static = "1.4"
+
+# Reference to mvp-node library
+mvp-node = { path = "../mvp-node" }
+
+# Shell completions
+clap_complete = "4.5"
+
+[dev-dependencies]
+tokio-test = "0.4"
+proptest = "1.4"
+tempfile = "3.8"
+serial_test = "3.0"
+
+[lib]
+name = "mvp_cli"
+path = "src/lib.rs"
+
+[[bin]]
+name = "mvp-cli"
+path = "src/main.rs"
+

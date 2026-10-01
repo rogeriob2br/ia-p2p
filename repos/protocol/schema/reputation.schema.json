@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ReputationEvent",
+  "type": "object",
+  "properties": {
+    "event_id": {"type": "string"},
+    "job_id": {"type": "string"},
+    "target_pubkey": {"type": "string"},
+    "issuer_pubkey": {"type": "string"},
+    "score_delta": {
+      "type": "integer",
+      "minimum": -100,
+      "maximum": 100
+    },
+    "reason": {"type": "string"},
+    "evidence_uri": {"type": "string"},
+    "timestamp": {"type": "integer"},
+    "signature": {"type": "string"}
+  },
+  "required": ["event_id", "target_pubkey", "issuer_pubkey", "score_delta", "timestamp", "signature"],
+  "additionalProperties": true
+}

@@ -1,0 +1,30 @@
+[package]
+name = "universal-agent"
+version = "0.1.0"
+edition = "2021"
+description = "Universal agent for decentralized AI network"
+
+[features]
+default = []
+nvidia = ["nvml-wrapper"]
+
+[dependencies]
+p2p-core = { path = "../p2p-core" }
+anyhow = "1.0"
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
+clap = { version = "4.5", features = ["derive"] }
+dirs = "5.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
+sysinfo = "0.30"
+thiserror = "1.0"
+tokio = { version = "1.37", features = ["rt-multi-thread", "macros", "sync", "signal"] }
+libp2p = { version = "0.53", features = ["tokio"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+uuid = { version = "1.11", features = ["v4"] }
+hex = "0.4"
+
+# Optional GPU detection
+nvml-wrapper = { version = "0.9", optional = true }

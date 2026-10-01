@@ -1,0 +1,74 @@
+# MVP CLI Configuration Example
+# Copy to ~/.config/mvp-cli/config.toml
+
+# Default node to connect to
+default_node = "localhost"
+
+# Default model for inference jobs
+default_model = "tinyllama"
+
+# Command timeout in seconds
+timeout_secs = 30
+
+# Number of retry attempts for failed operations
+retry_attempts = 3
+
+[connection]
+# Default port for node connections
+default_port = 4001
+
+# Connection timeout in seconds
+connection_timeout_secs = 10
+
+# Maximum concurrent connections
+max_connections = 10
+
+[multi_node]
+# Base port for multi-node instances
+base_port = 5000
+
+# Port range for instances (5000-5099)
+port_range = 100
+
+# Directory for node logs
+log_dir = "./logs"
+
+# Path to mvp-node binary (auto-detected if not set)
+# node_binary = "/path/to/mvp-node"
+
+[interactive]
+# Path to history file
+history_file = "~/.mvp_cli_history"
+
+# Maximum history entries
+history_size = 1000
+
+# Enable auto-complete
+auto_complete_enabled = true
+
+# Prompt string
+prompt = "mvp> "
+
+[output]
+# Table style: modern, ascii, minimal
+table_style = "modern"
+
+# Date format for timestamps
+date_format = "%Y-%m-%d %H:%M:%S"
+
+# Truncate long output
+truncate_long_output = true
+
+# Maximum output lines
+max_output_lines = 100
+
+
+
+
+
+
+
+
+
+
+

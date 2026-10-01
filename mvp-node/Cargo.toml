@@ -1,0 +1,87 @@
+[package]
+name = "mvp-node"
+version = "0.1.0"
+edition = "2021"
+description = "MVP Node for decentralized AI network"
+authors = ["Your Name <your.email@example.com>"]
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+# P2P Networking
+libp2p = { version = "0.53", features = [
+    "gossipsub",
+    "request-response", 
+    "mdns",
+    "tcp",
+    "noise",
+    "yamux",
+    "tokio",
+    "macros",
+    "identify",
+] }
+
+# Async Runtime
+tokio = { version = "1.37", features = ["rt-multi-thread", "macros", "sync", "fs", "time", "signal", "io-util"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Error Handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Logging and Tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# Async utilities
+futures = "0.3"
+async-trait = "0.1"
+
+# Cryptography
+hex = "0.4"
+ed25519-dalek = { version = "2.1", features = ["rand_core"] }
+sha2 = "0.10"
+rand = "0.8"
+
+# CLI
+clap = { version = "4.0", features = ["derive", "env"] }
+
+# Configuration
+config = "0.14"
+toml = "0.8"
+
+# System info
+num_cpus = "1.16"
+
+# Time/Date
+chrono = { version = "0.4", features = ["serde"] }
+
+# UUID generation
+uuid = { version = "1.10", features = ["v4", "serde"] }
+
+# AI/ML - Candle Framework (HuggingFace)
+candle-core = "0.8"
+candle-nn = "0.8"
+candle-transformers = "0.8"
+hf-hub = "0.3"           # Download de modelos do HuggingFace
+tokenizers = "0.20"      # Tokenização
+
+[dev-dependencies]
+# Testing
+tokio-test = "0.4"
+proptest = "1.4"
+mockall = "0.12"
+tempfile = "3.8"
+
+# Test utilities
+serial_test = "3.0"  # For tests that can't run in parallel
+
+[[bin]]
+name = "mvp-node"
+path = "src/main.rs"
+
+[[example]]
+name = "submit_job"
+path = "examples/submit_job.rs"

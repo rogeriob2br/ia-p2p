@@ -1,0 +1,632 @@
+# Implementation Plan: Inference Pool
+
+## Overview
+
+Este plano implementa a Inference Pool como componente Layer 2 da rede P2P de IA descentralizada. A implementação segue uma abordagem incremental, começando pela infraestrutura core (registro manual de nodes, API OpenAI-compatible), progredindo para monitoramento de orquestração distribuída, e finalizando com billing e Lightning Network.
+
+**Modelo de Operação:**
+- Nodes se registram manualmente via configuração (não há descoberta automática)
+- Pool monitora orquestração distribuída que acontece entre nodes
+- Pool visualiza papéis, grupos de contexto, e métricas da rede
+- Pool respeita decisões da rede P2P (consenso adaptativo, formação de grupos)
+
+## Tasks
+
+- [ ] 1. Setup do projeto e infraestrutura base
+  - [ ] 1.1 Criar estrutura do projeto Rust com Cargo workspace
+    - Criar `inference-pool/Cargo.toml` com dependências (axum, tokio, serde, libp2p)
+    - Definir módulos: `api`, `registry`, `router`, `auth`, `network_map`, `observer`, `control_plane`, `orchestrator`, `billing`, `channel_manager`
+    - _Requirements: Setup_
+  - [ ] 1.2 Implementar tipos de erro e configuração
+    - Criar `PoolError` enum com variantes para cada tipo de erro
+    - Criar `PoolConfig` struct com todas as configurações
+    - _Requirements: 9.1, 9.2, 9.3, 9.4_
+  - [ ] 1.3 Write property test for error types
+    - **Property 15: Error Responses Follow OpenAI Format**
+    - **Validates: Requirements 9.1**
+  - [ ] 1.4 Write property test for invalid payload
+    - **Property 16: Invalid Payload Returns 400**
+    - **Validates: Requirements 9.3**
+
+- [ ] 2. Implementar Pool Registry
+  - [ ] 2.1 Criar estruturas de dados do Registry
+    - Implementar `PoolMember`, `MemberStatus`, `MemberMetrics`
+    - Implementar `MemberRegistration` para novos membros
+    - _Requirements: 1.1, 1.2_
+  - [ ] 2.2 Implementar PoolRegistry trait
+    - `register_member`, `update_member_status`, `get_active_members`
+    - `get_members_for_model`, `remove_member`, `update_member_metrics`
+    - Storage em memória com RwLock para concorrência
+    - _Requirements: 1.1, 1.2_
+  - [ ] 2.3 Write property test for registry round-trip
+    - **Property 1: Node Registration Round-Trip**
+    - **Validates: Requirements 1.1, 1.2**
+
+- [ ] 3. Implementar Heartbeat Monitor
+  - [ ] 3.1 Criar HeartbeatMonitor
+    - Implementar monitoramento assíncrono com tokio intervals
+    - Tracking de heartbeats por membro
+    - Detecção de timeout configurável
+    - _Requirements: 1.3, 1.4_
+  - [ ] 3.2 Integrar com Pool Registry
+    - Atualizar status para `Inactive` quando timeout
+    - Emitir eventos de status change
+    - _Requirements: 1.3, 1.4_
+  - [ ] 3.3 Write property test for heartbeat timeout
+    - **Property 2: Heartbeat Timeout Marks Inactive**
+    - **Validates: Requirements 1.3, 1.4**
+
+- [ ] 4. Checkpoint - Registry e Heartbeat
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 5. Implementar Data Models OpenAI-Compatible
+  - [ ] 5.1 Criar request/response structs
+    - `ChatCompletionRequest`, `ChatCompletionResponse`
+    - `EmbeddingRequest`, `EmbeddingResponse`
+    - `ModelsResponse`, `ModelObject`
+    - _Requirements: 2.1, 2.5, 3.1, 3.2, 4.1_
+  - [ ] 5.2 Implementar serialização/deserialização
+    - Serde attributes para compatibilidade OpenAI
+    - Validação de campos obrigatórios
+    - _Requirements: 2.1, 2.2_
+  - [ ] 5.3 Write property test for OpenAI format
+    - **Property 3: OpenAI Request Format Acceptance**
+    - **Validates: Requirements 2.1**
+  - [ ] 5.4 Write property test for message roles
+    - **Property 4: Message Roles Parsing**
+    - **Validates: Requirements 2.2**
+
+- [ ] 6. Implementar Authentication Middleware
+  - [ ] 6.1 Criar estruturas de autenticação
+    - `ApiKeyInfo`, `SlaTier`, `RateLimit`
+    - Storage de API keys (inicialmente em memória)
+    - _Requirements: 6.1, 6.2, 6.3_
+  - [ ] 6.2 Implementar AuthMiddleware trait
+    - `validate_key`, `check_rate_limit`, `record_usage`
+    - `create_key`, `revoke_key`
+    - _Requirements: 6.1, 6.2, 6.3_
+  - [ ] 6.3 Criar middleware Axum
+    - Extração de Bearer token do header Authorization
+    - Injeção de client info no request context
+    - _Requirements: 6.1, 6.2_
+  - [ ] 6.4 Write property test for API key validation
+    - **Property 13: API Key Validation Determines Access**
+    - **Validates: Requirements 6.1, 6.2, 6.3**
+
+- [ ] 7. Implementar Job Router
+  - [ ] 7.1 Criar estruturas de roteamento
+    - `RoutingStrategy`, `RoutingDecision`, `InferenceJob`
+    - Scoring de membros baseado em métricas
+    - _Requirements: 5.1, 5.2_
+  - [ ] 7.2 Implementar JobRouter trait
+    - `route_job` com seleção baseada em modelo e métricas
+    - `execute_with_retry` com failover automático
+    - `record_job_result` para atualizar métricas
+    - _Requirements: 5.1, 5.2, 5.3_
+  - [ ] 7.3 Write property test for model-compatible routing
+    - **Property 10: Router Selects Model-Compatible Member**
+    - **Validates: Requirements 5.1**
+  - [ ] 7.4 Write property test for load/latency consideration
+    - **Property 11: Router Considers Load and Latency**
+    - **Validates: Requirements 5.2**
+  - [ ] 7.5 Write property test for retry on failure
+    - **Property 12: Router Retries on Failure**
+    - **Validates: Requirements 5.3**
+
+- [ ] 8. Checkpoint - Core Components
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 9. Implementar HTTP API Server
+  - [ ] 9.1 Setup Axum server
+    - Configurar router com endpoints OpenAI
+    - Middleware de autenticação e logging
+    - Error handling global
+    - _Requirements: 2.1, 3.1, 4.1_
+  - [ ] 9.2 Implementar `/v1/chat/completions`
+    - Handler para requests síncronos
+    - Integração com Job Router
+    - Formatação de resposta OpenAI
+    - _Requirements: 2.1, 2.2, 2.4, 2.5_
+  - [ ] 9.3 Implementar streaming SSE
+    - Handler para `stream: true`
+    - Server-Sent Events com chunks
+    - _Requirements: 2.3_
+  - [ ] 9.4 Write property test for streaming mode
+    - **Property 5: Streaming Mode Determines Response Format**
+    - **Validates: Requirements 2.3, 2.4**
+  - [ ] 9.5 Write property test for response fields
+    - **Property 6: Response Contains Required OpenAI Fields**
+    - **Validates: Requirements 2.5**
+
+- [ ] 10. Implementar Embeddings API
+  - [ ] 10.1 Implementar `/v1/embeddings`
+    - Handler para single string e array
+    - Integração com Job Router
+    - _Requirements: 3.1, 3.2, 3.3_
+  - [ ] 10.2 Write property test for input flexibility
+    - **Property 7: Embedding Input Flexibility**
+    - **Validates: Requirements 3.1, 3.2**
+  - [ ] 10.3 Write property test for order preservation
+    - **Property 8: Embedding Order Preservation**
+    - **Validates: Requirements 3.3**
+
+- [ ] 11. Implementar Models API
+  - [ ] 11.1 Implementar `/v1/models`
+    - Agregação de modelos dos Pool_Members
+    - Contagem de nodes e capacidade por modelo
+    - _Requirements: 4.1, 4.2_
+  - [ ] 11.2 Write property test for models aggregation
+    - **Property 9: Models Aggregation from Members**
+    - **Validates: Requirements 4.1, 4.2**
+
+- [ ] 12. Implementar Pool Status Endpoints
+  - [ ] 12.1 Implementar `/v1/pool/status` e `/v1/pool/info`
+    - Estatísticas agregadas da pool
+    - Informações públicas (fees, SLAs, políticas)
+    - _Requirements: 8.1, 8.2_
+
+- [ ] 13. Checkpoint - API Completa
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 14. Implementar Registration API
+  - [ ] 14.1 Criar estruturas de registro
+    - `PoolRegistrationRequest`, `RegistrationResponse`
+    - `RegistrationKey` validation logic
+    - _Requirements: 10.1, 10.2, 10.3_
+  - [ ] 14.2 Implementar endpoint `POST /v1/pool/register`
+    - Validar Registration_Key
+    - Verificar conectividade P2P com node
+    - Registrar node no Pool_Registry
+    - Iniciar abertura de canal Lightning
+    - _Requirements: 10.1, 10.2, 10.3_
+  - [ ] 14.3 Implementar endpoint `GET /v1/pool/info`
+    - Retornar informações públicas da pool
+    - Fees, SLAs, modelos, capacidade
+    - Não requer autenticação
+    - _Requirements: 10.4_
+  - [ ] 14.4 Write property test for registration key validation
+    - **Property 17: Registration API Validates Key**
+    - **Validates: Requirements 10.1, 10.2, 10.3**
+
+- [ ] 15. Implementar Network Map
+  - [ ] 15.1 Criar estruturas do Network Map
+    - `NetworkMap`, `ContextGroup`, `NodeConnection`
+    - `NetworkMetrics`, `GroupStatus`
+    - _Requirements: 11.4_
+  - [ ] 15.2 Implementar NetworkMapTrait
+    - `get_topology`, `get_context_groups`, `get_current_coordinator`
+    - `get_group_by_context`, `get_group_members`
+    - `update_from_event` para processar OrchestrationEvents
+    - _Requirements: 11.4, 11.5_
+  - [ ] 15.3 Implementar endpoint `GET /v1/pool/network-map`
+    - Retornar topologia atual da rede
+    - Grupos, coordenadores, métricas
+    - _Requirements: 11.5_
+  - [ ] 15.4 Write property test for event updates
+    - **Property 18: Orchestration Events Update Network Map**
+    - **Validates: Requirements 11.1, 11.4**
+
+- [ ] 16. Implementar Orchestration Observer
+  - [ ] 16.1 Criar estruturas de eventos
+    - `OrchestrationEvent` enum com todas as variantes
+    - `NodeRole`, `CoordinatorChangeReason`, `TopologyChange`
+    - _Requirements: 11.1, 11.2, 11.3_
+  - [ ] 16.2 Implementar OrchestrationObserver trait
+    - `on_orchestration_event` para receber eventos via P2P
+    - `on_metrics_update` para atualizar métricas de nodes
+    - `on_topology_change` para mudanças de topologia
+    - _Requirements: 11.1, 11.2, 11.3_
+  - [ ] 16.3 Integrar Observer com Network Map
+    - Observer atualiza Network Map ao receber eventos
+    - Manter histórico de eventos (últimos 1000)
+    - _Requirements: 11.4_
+  - [ ] 16.4 Setup P2P listener para eventos
+    - Subscribe ao topic de orquestração
+    - Processar mensagens de nodes
+    - _Requirements: 11.1_
+
+- [ ] 17. Implementar Pool Control Plane
+  - [ ] 17.1 Criar estruturas do Control Plane
+    - `NodeHealthCheck`, `DeregistrationReason`
+    - Critérios de saúde configuráveis
+    - _Requirements: 12.1, 12.2_
+  - [ ] 17.2 Implementar PoolControlPlane trait
+    - `evaluate_node_health` para avaliar performance
+    - `should_deregister` para verificar critérios
+    - `deregister_node` para remover node
+    - `send_node_warning` para alertar operador
+    - _Requirements: 12.1, 12.2, 12.3, 12.4_
+  - [ ] 17.3 Implementar monitoramento contínuo
+    - Task assíncrona que avalia saúde periodicamente
+    - Desregistro automático após 48h de baixa performance
+    - _Requirements: 12.3_
+  - [ ] 17.4 Implementar endpoint `POST /v1/pool/admin/deregister`
+    - Desregistro manual com justificativa
+    - Requer autenticação de admin
+    - _Requirements: 12.5_
+  - [ ] 17.5 Write property test for health-based deregistration
+    - **Property 19: Node Health Triggers Deregistration**
+    - **Validates: Requirements 12.1, 12.3, 12.4**
+
+- [ ] 18. Integrar Router com Network Map
+  - [ ] 18.1 Atualizar Job Router para consultar Network Map
+    - Identificar Context_Group apropriado para job
+    - Rotear para Group_Leader quando aplicável
+    - Considerar affinity do coordenador
+    - _Requirements: 13.1, 13.2, 13.3_
+  - [ ] 18.2 Implementar lógica de deferência à rede
+    - Quando consenso adaptativo está ativo, aguardar decisão
+    - Priorizar nodes com alta participação em consenso
+    - _Requirements: 13.4, 13.5_
+  - [ ] 18.3 Write property test for network map consultation
+    - **Property 20: Router Consults Network Map**
+    - **Validates: Requirements 13.1, 13.2**
+
+- [ ] 19. Checkpoint - Registration, Network Map, Observer, Control Plane
+  - Ensure all tests pass, ask the user if questions arise.
+
+---
+
+## Node-Side Implementation Tasks
+
+**IMPORTANTE**: As tasks 19.1 a 19.7 abaixo implementam mudanças no **mvp-node** (código em `mvp-node/src/pool/`) para suportar integração com Inference Pools. Estas tasks devem ser executadas APÓS os componentes da Pool estarem funcionais (tasks 1-19).
+
+**Localização**: `mvp-node/src/pool/` (novo módulo)
+
+**Por quê**: Nodes precisam se registrar, enviar heartbeats, publicar eventos de orquestração, receber jobs e aceitar pagamentos Lightning da pool.
+
+- [ ] 19.1 Implementar Pool Configuration (Node Side)
+  - [ ] 19.1.1 Criar estrutura PoolConfig
+    - Definir campos: enabled, pool_url, registration_key, auto_register, intervals
+    - Implementar Default trait
+    - _Requirements: 17.1_
+    - _Localização: `mvp-node/src/pool/config.rs`_
+  - [ ] 19.1.2 Adicionar seção [pool] ao config.toml
+    - Documentar cada campo de configuração
+    - Exemplo de configuração completa
+    - _Requirements: 17.1_
+    - _Localização: `mvp-node/config.toml`_
+  - [ ] 19.1.3 Integrar PoolConfig no NodeConfig principal
+    - Carregar configuração de pool ao iniciar node
+    - Validar campos obrigatórios se enabled=true
+    - _Requirements: 17.1_
+    - _Localização: `mvp-node/src/config.rs`_
+
+- [ ] 19.2 Implementar Registration Client (Node Side)
+  - [ ] 19.2.1 Criar estruturas de registro
+    - `PoolRegistrationRequest`, `RegistrationResponse`
+    - `RegistrationState` enum
+    - _Requirements: 17.2, 17.3_
+    - _Localização: `mvp-node/src/pool/registration.rs`_
+  - [ ] 19.2.2 Implementar RegistrationClient trait
+    - `register()` - enviar POST /v1/pool/register
+    - `get_status()` - retornar estado atual
+    - `re_register()` - tentar novamente se falhou
+    - `unregister()` - desregistrar ao desligar
+    - _Requirements: 17.2, 17.3, 17.4_
+    - _Localização: `mvp-node/src/pool/registration.rs`_
+  - [ ] 19.2.3 Implementar auto-registro ao iniciar node
+    - Se pool.enabled=true e auto_register=true
+    - Coletar capabilities, models, lightning_pubkey, multiaddrs
+    - Enviar registro e armazenar member_id
+    - _Requirements: 17.1, 17.2_
+    - _Localização: `mvp-node/src/main.rs` ou `mvp-node/src/node.rs`_
+  - [ ] 19.2.4 Write property test for registration round-trip
+    - **Property 29: Node Registration Round-Trip**
+    - **Validates: Requirements 17.1, 17.3**
+    - _Localização: `mvp-node/tests/property/pool_registration.rs`_
+
+- [ ] 19.3 Implementar Heartbeat Client (Node Side)
+  - [ ] 19.3.1 Criar estrutura HeartbeatPayload
+    - Campos: node_id, timestamp, current_load, available_capacity, status
+    - _Requirements: 18.2_
+    - _Localização: `mvp-node/src/pool/heartbeat.rs`_
+  - [ ] 19.3.2 Implementar HeartbeatClient trait
+    - `start()` - iniciar loop assíncrono de heartbeat
+    - `stop()` - parar loop
+    - `send_heartbeat()` - enviar único heartbeat
+    - `last_heartbeat()` - timestamp do último sucesso
+    - `is_healthy()` - verificar se heartbeats estão funcionando
+    - _Requirements: 18.1, 18.2, 18.3_
+    - _Localização: `mvp-node/src/pool/heartbeat.rs`_
+  - [ ] 19.3.3 Integrar heartbeat loop no node lifecycle
+    - Iniciar após registro bem-sucedido
+    - Parar ao desligar node
+    - Re-tentar registro se heartbeat falha N vezes
+    - _Requirements: 18.4_
+    - _Localização: `mvp-node/src/node.rs`_
+  - [ ] 19.3.4 Write property test for heartbeat maintains status
+    - **Property 30: Heartbeat Maintains Active Status**
+    - **Validates: Requirements 18.2, 18.3**
+    - _Localização: `mvp-node/tests/property/pool_heartbeat.rs`_
+
+- [ ] 19.4 Implementar Event Publisher (Node Side)
+  - [ ] 19.4.1 Criar EventPublisher trait
+    - `publish_coordinator_changed()`
+    - `publish_context_group_formed()`
+    - `publish_consensus_reached()`
+    - `publish_node_role_changed()`
+    - `publish_network_partition()`
+    - _Requirements: 19.1, 19.2, 19.3, 19.4, 19.5_
+    - _Localização: `mvp-node/src/pool/event_publisher.rs`_
+  - [ ] 19.4.2 Implementar publicação via P2P
+    - Usar topic `/pool/orchestration/1.0.0`
+    - Serializar eventos como JSON
+    - Enviar para pool via gossipsub
+    - _Requirements: 19.6_
+    - _Localização: `mvp-node/src/pool/event_publisher.rs`_
+  - [ ] 19.4.3 Integrar com módulo de orquestração existente
+    - Em `coordinator.rs`: publicar quando affinity muda
+    - Em `context_groups.rs`: publicar quando grupo forma
+    - Em `consensus.rs`: publicar após consenso
+    - _Requirements: 19.1, 19.2, 19.3_
+    - _Localização: `mvp-node/src/orchestration/*.rs`_
+  - [ ] 19.4.4 Write property test for event publishing
+    - **Property 31: Orchestration Events Reach Pool**
+    - **Validates: Requirements 19.1, 19.2, 19.3**
+    - _Localização: `mvp-node/tests/property/pool_events.rs`_
+
+- [ ] 19.5 Implementar Job Receiver (Node Side)
+  - [ ] 19.5.1 Criar estruturas de job
+    - `PoolJob`, `PoolJobResult`, `JobStatus`
+    - _Requirements: 20.1_
+    - _Localização: `mvp-node/src/pool/job_receiver.rs`_
+  - [ ] 19.5.2 Implementar JobReceiver trait
+    - `start()` - iniciar listener P2P para jobs
+    - `handle_job()` - processar job recebido
+    - `send_result()` - enviar resultado para pool
+    - `get_metrics()` - métricas de jobs processados
+    - _Requirements: 20.1, 20.2, 20.3_
+    - _Localização: `mvp-node/src/pool/job_receiver.rs`_
+  - [ ] 19.5.3 Integrar com inference handler existente
+    - Modificar `inference/handler.rs` para aceitar jobs da pool
+    - Identificar origem (pool vs P2P direto)
+    - Rastrear métricas separadas
+    - _Requirements: 20.1, 20.4, 20.5_
+    - _Localização: `mvp-node/src/inference/handler.rs`_
+  - [ ] 19.5.4 Write property test for job processing
+    - **Property 32: Pool Jobs Are Processed**
+    - **Validates: Requirements 20.2, 20.3**
+    - _Localização: `mvp-node/tests/property/pool_jobs.rs`_
+
+- [ ] 19.6 Implementar Lightning Client (Node Side)
+  - [ ] 19.6.1 Criar estruturas Lightning
+    - `PoolChannel`, `PaymentReceived`
+    - _Requirements: 21.1, 21.2_
+    - _Localização: `mvp-node/src/lightning/channel.rs`_
+  - [ ] 19.6.2 Implementar LightningClient trait
+    - `accept_channel()` - aceitar abertura de canal da pool
+    - `get_pool_channel()` - obter canal com pool
+    - `on_payment_received()` - processar pagamento recebido
+    - `get_channel_balance()` - verificar saldo
+    - `close_channel()` - fechar cooperativamente
+    - _Requirements: 21.1, 21.2, 21.3, 21.4, 21.5_
+    - _Localização: `mvp-node/src/lightning/channel.rs`_
+  - [ ] 19.6.3 Integrar com LND ou CLN
+    - Configurar conexão com daemon Lightning
+    - Aceitar solicitações de abertura de canal
+    - Monitorar pagamentos recebidos
+    - _Requirements: 21.1, 21.2_
+    - _Localização: `mvp-node/src/lightning/client.rs`_
+  - [ ] 19.6.4 Write property test for payment reception
+    - **Property 33: Lightning Payments Are Received**
+    - **Validates: Requirements 21.3**
+    - _Localização: `mvp-node/tests/property/pool_lightning.rs`_
+
+- [ ] 19.7 Implementar Metrics Reporter (Node Side)
+  - [ ] 19.7.1 Criar estrutura NodeMetrics
+    - Campos: success_rate, avg_latency_ms, current_load, jobs_completed, etc.
+    - _Requirements: 22.1_
+    - _Localização: `mvp-node/src/pool/metrics.rs`_
+  - [ ] 19.7.2 Implementar MetricsReporter trait
+    - `start()` - iniciar coleta e reporte periódico
+    - `stop()` - parar reporte
+    - `collect_metrics()` - coletar métricas atuais
+    - `send_metrics()` - enviar para pool
+    - `record_job_completion()` - atualizar stats de jobs
+    - `record_consensus_participation()` - atualizar participação
+    - _Requirements: 22.1, 22.2, 22.3, 22.4_
+    - _Localização: `mvp-node/src/pool/metrics.rs`_
+  - [ ] 19.7.3 Integrar coleta de métricas
+    - Coletar de inference handler (jobs, latency)
+    - Coletar de orchestration (consensus participation)
+    - Coletar de sistema (uptime, load)
+    - _Requirements: 22.1, 22.3_
+    - _Localização: `mvp-node/src/pool/metrics.rs`_
+  - [ ] 19.7.4 Write property test for metrics accuracy
+    - **Property 34: Metrics Reflect Reality**
+    - **Validates: Requirements 22.1, 22.4**
+    - _Localização: `mvp-node/tests/property/pool_metrics.rs`_
+
+---
+
+- [ ] 20. Checkpoint - Node Integration Complete
+  - Ensure all node-side tests pass
+  - Verify node can register, send heartbeats, publish events, receive jobs, accept payments
+  - Ask the user if questions arise.
+
+- [ ] 21. Implementar Pool Orchestrator (LLM)
+  - [ ] 21.1 Criar estruturas do Orchestrator
+    - `OrchestrationContext`, `OrchestratorDecision`, `OrchestratorAction`
+    - `DecisionType` enum
+    - _Requirements: 14.1_
+  - [ ] 21.2 Integrar com LLM local
+    - Usar candle ou llama.cpp para inferência local
+    - Prompt engineering para decisões de roteamento
+    - _Requirements: 14.1, 14.2_
+  - [ ] 21.3 Implementar PoolOrchestrator trait
+    - `get_routing_decision` para decisões complexas
+    - `analyze_performance` para sugestões de otimização
+    - `plan_allocation` para SLA requirements
+    - `should_defer_to_network` para respeitar decisões da rede
+    - _Requirements: 14.1, 14.2, 14.3, 14.5_
+  - [ ] 21.4 Implementar histórico de decisões
+    - Storage de decisões e outcomes
+    - Export para fine-tuning futuro
+    - _Requirements: 14.4_
+  - [ ] 21.5 Write property test for network decision respect
+    - **Property 21: LLM Respects Network Decisions**
+    - **Validates: Requirements 14.5**
+
+- [ ] 22. Checkpoint - LLM Orchestrator
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 23. Implementar Billing System
+  - [ ] 23.1 Criar estruturas de billing
+    - `BillingTicket`, `TokenUsage`, `Money`, `Currency`
+    - `Invoice`, `InvoiceStatus`, `PaymentMethod`
+    - `MemberEarnings`, `PaymentRecord`
+    - _Requirements: 15.1, 15.2_
+  - [ ] 23.2 Implementar criação de tickets
+    - Criar ticket após cada inferência
+    - Calcular split entre pool fee e pagamento ao member
+    - _Requirements: 15.1, 15.2_
+  - [ ] 23.3 Implementar endpoints de billing
+    - `/v1/billing/invoices` para clientes
+    - `/v1/billing/earnings` para Pool_Members
+    - _Requirements: 15.3, 15.4_
+  - [ ] 23.4 Implementar geração de invoices
+    - Consolidar tickets por período
+    - Calcular totais e impostos
+    - _Requirements: 15.5_
+  - [ ] 23.5 Implementar suporte Lightning Network
+    - Gerar invoices Lightning para pagamento
+    - Processar pagamentos via Lightning
+    - _Requirements: 15.6_
+  - [ ] 23.6 Write property test for ticket creation
+    - **Property 22: Billing Ticket Creation**
+    - **Validates: Requirements 15.1, 15.2**
+  - [ ] 23.7 Write property test for invoice generation
+    - **Property 23: Invoice Generation**
+    - **Validates: Requirements 15.5**
+  - [ ] 23.8 Write property test for multi-currency
+    - **Property 24: Multi-Currency Support**
+    - **Validates: Requirements 15.6**
+
+- [ ] 24. Implementar Channel Manager
+  - [ ] 24.1 Criar estruturas do Channel Manager
+    - `LightningChannel`, `ChannelStatus`, `ChannelConfig`
+    - `ChannelMetrics`, `ChannelEvent`
+    - _Requirements: 16.1_
+  - [ ] 24.2 Integrar com Lightning Network Daemon (LND ou CLN)
+    - Configurar conexão com node Lightning
+    - Implementar gRPC client para LND ou RPC para CLN
+    - _Requirements: 16.1, 16.2_
+  - [ ] 24.3 Implementar abertura de canais
+    - `open_channel` ao registrar Pool_Member
+    - Configurar capacidade e fees
+    - Monitorar confirmações on-chain
+    - _Requirements: 16.1_
+  - [ ] 24.4 Implementar pagamentos instantâneos
+    - `send_payment` via canal direto
+    - Tracking de pagamentos por ticket
+    - Retry logic se pagamento falha
+    - _Requirements: 16.2_
+  - [ ] 24.5 Implementar monitoramento de liquidez
+    - `check_and_rebalance` para manter liquidez
+    - Alertas quando liquidez baixa
+    - Rebalanceamento automático opcional
+    - _Requirements: 16.3_
+  - [ ] 24.6 Implementar fechamento de canais
+    - `close_channel` cooperativo ao sair da pool
+    - Force close em caso de não-cooperação
+    - Cleanup de recursos
+    - _Requirements: 16.4_
+  - [ ] 24.7 Implementar fallback para routing
+    - Usar Lightning routing se canal direto falha
+    - Tracking de fees de routing
+    - _Requirements: 16.5_
+  - [ ] 24.8 Write property test for channel opening
+    - **Property 25: Direct Channel Opens on Registration**
+    - **Validates: Requirements 16.1**
+  - [ ] 24.9 Write property test for instant payment
+    - **Property 26: Instant Payment via Direct Channel**
+    - **Validates: Requirements 16.2**
+  - [ ] 24.10 Write property test for liquidity monitoring
+    - **Property 27: Channel Liquidity Monitoring**
+    - **Validates: Requirements 16.3**
+  - [ ] 24.11 Write property test for channel closure
+    - **Property 28: Cooperative Channel Closure**
+    - **Validates: Requirements 16.4**
+
+- [ ] 25. Integrar Billing com Channel Manager
+  - [ ] 25.1 Conectar Billing System ao Channel Manager
+    - Após criar ticket, chamar `pay_member_instant`
+    - Channel Manager envia pagamento via canal direto
+    - Atualizar ticket com status de pagamento
+    - _Requirements: 15.1, 15.2, 16.2_
+  - [ ] 25.2 Implementar tracking de pagamentos
+    - Registrar todos os pagamentos em `PaymentRecord`
+    - Associar pagamentos a tickets
+    - Expor histórico via `/v1/billing/earnings`
+    - _Requirements: 15.4_
+
+- [ ] 26. Implementar Usage Tracker
+  - [ ] 26.1 Criar UsageTracker
+    - Integrar com Billing System
+    - Endpoint `/v1/usage` para consulta
+    - _Requirements: 7.1, 7.2, 7.3_
+  - [ ] 26.2 Write property test for usage tracking
+    - **Property 14: Inference Completion Triggers Tracking**
+    - **Validates: Requirements 7.1, 7.2**
+
+- [ ] 27. Checkpoint - Billing e Channels Completo
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 28. Integração e Wiring
+  - [ ] 28.1 Integrar todos os componentes
+    - Wiring do fluxo completo de requisição
+    - Injeção de dependências
+    - _Requirements: All_
+  - [ ] 28.2 Implementar graceful shutdown
+    - Shutdown ordenado de todos os componentes
+    - Flush de dados pendentes
+    - Fechar canais Lightning de forma cooperativa
+    - _Requirements: Operational_
+  - [ ] 28.3 Write integration tests
+    - End-to-end request flow
+    - Multi-member routing scenarios
+    - Failure and recovery scenarios
+    - Channel payment flow
+    - Orchestration event flow (nodes → observer → network map → router)
+    - Node-to-Pool integration (registration, heartbeat, events, jobs, payments)
+
+- [ ] 29. Checkpoint Final
+  - Ensure all tests pass, ask the user if questions arise.
+
+## Notes
+
+- Todos os testes são obrigatórios para garantir qualidade desde o início
+- Cada task referencia requisitos específicos para rastreabilidade
+- Checkpoints garantem validação incremental
+- Property tests validam propriedades universais de corretude
+- Unit tests validam exemplos específicos e edge cases
+- A implementação usa Rust com axum para HTTP e libp2p para P2P
+- Channel Manager usa canais Lightning diretos para pagamentos instantâneos sem fees
+- Suporta LND (Lightning Network Daemon) ou CLN (Core Lightning) como backend
+- **Modelo de Operação:**
+  - Nodes se registram manualmente via configuração (não há descoberta automática)
+  - Pool monitora orquestração distribuída que acontece entre nodes
+  - Pool visualiza papéis, grupos de contexto, e métricas da rede
+  - Pool respeita decisões da rede P2P (consenso adaptativo, formação de grupos)
+  - Pool pode desregistrar nodes com baixa performance
+- **Componentes da Pool (inference-pool/):**
+  - Registration API: Endpoints para registro manual de nodes
+  - Network Map: Visualização da topologia e papéis da rede
+  - Orchestration Observer: Monitora eventos da orquestração distribuída
+  - Pool Control Plane: Gerencia saúde e desregistro de nodes
+- **Componentes do Node (mvp-node/src/pool/):**
+  - Pool Configuration: Configuração de pool no node
+  - Registration Client: Cliente para registrar node na pool
+  - Heartbeat Client: Envia heartbeats periódicos
+  - Event Publisher: Publica eventos de orquestração para pool
+  - Job Receiver: Recebe e processa jobs da pool
+  - Lightning Client: Aceita canais e pagamentos Lightning
+  - Metrics Reporter: Coleta e reporta métricas de performance
+- **Total de Tasks:** 29 (era 28, adicionadas 7 subtasks de Node)
+- **Total de Properties:** 34 (era 28, adicionadas 6 novas para Node)
+- **Requisitos:** 22 (16 Pool-side + 6 Node-side)
+- **Ordem de Implementação:**
+  1. Tasks 1-19: Implementar componentes da Pool (inference-pool/)
+  2. Tasks 19.1-19.7: Implementar componentes do Node (mvp-node/src/pool/)
+  3. Tasks 20-29: Completar Pool (LLM, Billing, Lightning, Integration)

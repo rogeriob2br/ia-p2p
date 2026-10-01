@@ -1,0 +1,25 @@
+# Build & dependencies
+target/
+**/target/
+node_modules/
+**/node_modules/
+.venv/
+venv/
+**/__pycache__/
+*.pyc
+dist/
+build/
+
+# IDE & OS files
+.vscode/
+.idea/
+.DS_Store
+*.swp
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Temporary / Log files
+*.log

@@ -1,0 +1,102 @@
+[package]
+name = "inference-pool"
+version = "0.1.0"
+edition = "2021"
+description = "Layer 2 Inference Pool for decentralized AI network - OpenAI-compatible API aggregator"
+authors = ["Your Name <your.email@example.com>"]
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+# HTTP Server
+axum = { version = "0.7", features = ["ws", "macros"] }
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+hyper = { version = "1.4", features = ["full"] }
+
+# Async Runtime
+tokio = { version = "1.37", features = ["rt-multi-thread", "macros", "sync", "fs", "time", "signal", "io-util"] }
+tokio-stream = "0.1"
+futures = "0.3"
+async-trait = "0.1"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# P2P Networking (for receiving orchestration events)
+libp2p = { version = "0.53", features = [
+    "gossipsub",
+    "request-response",
+    "tcp",
+    "noise",
+    "yamux",
+    "tokio",
+    "macros",
+    "identify",
+] }
+
+# Lightning Network (gRPC for LND/CLN)
+tonic = { version = "0.12", features = ["tls", "tls-roots"] }
+prost = "0.13"
+prost-types = "0.13"
+hyper-util = { version = "0.1", features = ["tokio"] }
+http-body-util = "0.1"
+rustls = { version = "0.23", features = ["ring"] }
+tokio-rustls = "0.26"
+base64 = "0.22"
+
+# Time/Date
+chrono = { version = "0.4", features = ["serde"] }
+
+# UUID generation
+uuid = { version = "1.10", features = ["v4", "serde"] }
+
+# Error Handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Logging and Tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# Configuration
+config = "0.14"
+toml = "0.8"
+
+# Cryptography (for API key generation/validation)
+rand = "0.8"
+hex = "0.4"
+sha2 = "0.10"
+
+# Utilities
+parking_lot = "0.12"  # Faster RwLock
+dashmap = "6.0"       # Concurrent HashMap
+
+# HTTP Client (for LND REST API)
+reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
+
+# Database (SQLite for dev, PostgreSQL for prod)
+sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite", "postgres", "any", "chrono", "uuid", "json"] }
+
+[dev-dependencies]
+# Testing
+tokio-test = "0.4"
+proptest = "1.4"
+mockall = "0.12"
+tempfile = "3.8"
+
+# HTTP testing
+axum-test = "15"
+reqwest = { version = "0.12", features = ["json"] }
+
+# Test utilities
+serial_test = "3.0"
+
+[[bin]]
+name = "inference-pool"
+path = "src/main.rs"
+
+[lib]
+name = "inference_pool"
+path = "src/lib.rs"
+

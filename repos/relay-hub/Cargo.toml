@@ -1,0 +1,25 @@
+[package]
+name = "relay-hub"
+version = "0.1.0"
+edition = "2021"
+description = "Job relay hub for decentralized AI network"
+
+[dependencies]
+p2p-core = { path = "../p2p-core" }
+axum = { version = "0.7", features = ["macros"] }
+tokio = { version = "1.37", features = ["rt-multi-thread", "macros", "sync", "signal"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+anyhow = "1.0"
+thiserror = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+clap = { version = "4.5", features = ["derive"] }
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
+uuid = { version = "1.11", features = ["v4"] }
+rusqlite = { version = "0.31", features = ["bundled"] }
+tower-http = { version = "0.5", features = ["cors"] }
+libp2p = { version = "0.53", features = ["tokio"] }
+reqwest = { version = "0.12", features = ["json"] }
+dirs = "5.0"
+
